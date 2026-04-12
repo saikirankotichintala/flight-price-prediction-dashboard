@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Price Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            color: #222;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: url("{{ url_for('static', filename='Plane photo.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(244, 246, 248, 0.84);
+            z-index: -1;
+        }
+
+        .top-header {
+            background-color: teal;
+            color: white;
+            padding: 12px 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .container {
+            width: min(1200px, 95%);
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .thumb-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            align-content: start;
+        }
+
+        .thumb-btn {
+            width: 100%;
+            border: 1px solid #d4dde6;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .thumb-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(10, 55, 55, 0.15);
+        }
+
+        .thumb-btn.active {
+            border-color: #118484;
+            box-shadow: 0 0 0 2px rgba(17, 132, 132, 0.18);
+        }
+
+        .thumb-btn img {
+            width: 100%;
+            height: 72px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #f8fbfd;
+        }
+
+        .thumb-btn span {
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #143737;
+        }
+
+        .metric-strip {
+            background: #e9f9f8;
+            border: 1px solid #bde7e4;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            font-size: 15px;
+        }
+
+        .chart-tip {
+            margin: 0 0 10px;
+            color: #356262;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .graph-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .graph-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        .graph-card.expanded-card {
+            grid-column: span 2;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .predict-card {
+            margin-top: 20px;
+            padding: 14px 16px;
+        }
+
+        .predict-card h2 {
+            margin: 0 0 10px;
+        }
+
+        .predict-form {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px 12px;
+            align-items: end;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            display: block;
+            margin-top: 0;
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        select,
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cdd6df;
+            font-size: 14px;
+        }
+
+        button {
+            background: teal;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #006d6d;
+        }
+
+        #result {
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .form-actions {
+            grid-column: span 3;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 2px;
+        }
+
+        .predict-submit {
+            width: auto;
+            min-width: 170px;
+            margin: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .graph-card.expanded-card {
+                grid-column: span 2;
+            }
+
+            .predict-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .form-actions {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .media-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .thumb-list {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .graph-card.expanded-card {
+                grid-column: span 1;
+            }
+
+            .predict-form {
+                grid-template-columns: 1fr;
+            }
+
+            .form-actions {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-header">
+        <h1>Flight Price Dashboard</h1>
+    </div>
+
+    <div class="container">
+        <div class="media-grid">
+            <div class="thumb-list">
+                {% for image in gallery_images %}
+                <button
+                    type="button"
+                    class="thumb-btn {% if loop.first %}active{% endif %}"
+                    data-src="{{ url_for('static', filename=image.filename) }}"
+                    data-label="{{ image.label }}"
+                    data-airline="{{ image.airline }}"
+                >
+                    <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.label }}" />
+                    <span>{{ image.label }}</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="metric-strip">
+            <div><strong>Model Accuracy (R2):</strong> {{ accuracy_pct }}%</div>
+            <div><strong>R2 Score:</strong> {{ model_r2 }}</div>
+            <div><strong>Mean Absolute Error:</strong> {{ model_mae }}</div>
+        </div>
+
+        <p class="chart-tip">Tip: double-click any chart card to expand or collapse it.</p>
+        <div class="grid">
+            <div class="card graph-card">
+                <h2>Flights by Airline</h2>
+                {{ graph1|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Airline Share</h2>
+                {{ graph6|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Price Distribution</h2>
+                {{ graph2|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Duration vs Price</h2>
+                {{ graph3|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Airline vs Price</h2>
+                {{ graph4|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Correlation Heatmap</h2>
+                {{ graph5|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Regression: Actual vs Predicted</h2>
+                {{ graph7|safe }}
+            </div>
+
+            <div class="card graph-card">
+                <h2>Average Price by Class</h2>
+                {{ graph8|safe }}
+            </div>
+        </div>
+
+        <div class="card predict-card" id="predict-card">
+            <h2>Predict Flight Price</h2>
+            <div class="predict-form">
+                <div class="form-field">
+                    <label for="airline">Airline:</label>
+                    <select id="airline">
+                        {% for value in airlines %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="source">Source:</label>
+                    <select id="source">
+                        {% for value in sources %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="destination">Destination:</label>
+                    <select id="destination">
+                        {% for value in destinations %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="departure_time">Departure Time:</label>
+                    <select id="departure_time">
+                        {% for value in departure_times %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="arrival_time">Arrival Time:</label>
+                    <select id="arrival_time">
+                        {% for value in arrival_times %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="stops">Stops:</label>
+                    <select id="stops">
+                        {% for value in stops %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="class">Class:</label>
+                    <select id="class">
+                        {% for value in classes %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="duration">Duration (hours):</label>
+                    <input
+                        id="duration"
+                        type="number"
+                        min="{{ duration_min }}"
+                        max="{{ duration_max }}"
+                        step="0.01"
+                        value="{{ duration_min }}"
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label for="days_left">Days Left:</label>
+                    <input
+                        id="days_left"
+                        type="number"
+                        min="{{ days_left_min }}"
+                        max="{{ days_left_max }}"
+                        step="1"
+                        value="{{ days_left_min }}"
+                    />
+                </div>
+
+                <div class="form-actions">
+                    <button class="predict-submit" type="button" onclick="predictPrice()">Predict Price</button>
+                    <h3 id="result"></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function initInteractiveImages() {
+            const airlineSelect = document.getElementById("airline");
+            const thumbButtons = Array.from(document.querySelectorAll(".thumb-btn"));
+
+            thumbButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    thumbButtons.forEach((item) => item.classList.remove("active"));
+                    button.classList.add("active");
+
+                    const label = button.dataset.label || "Image";
+                    const airlineValue = button.dataset.airline || "";
+
+                    if (airlineValue) {
+                        airlineSelect.value = airlineValue;
+                        document.getElementById("result").innerText = `${label} selected.`;
+                        document.getElementById("predict-card").scrollIntoView({
+                            behavior: "smooth",
+                            block: "start"
+                        });
+                    }
+                });
+            });
+        }
+
+        function initChartCards() {
+            document.querySelectorAll(".graph-card").forEach((card) => {
+                card.addEventListener("dblclick", () => {
+                    card.classList.toggle("expanded-card");
+                });
+            });
+        }
+
+        function predictPrice() {
+            const airline = document.getElementById("airline").value;
+            const source = document.getElementById("source").value;
+            const destination = document.getElementById("destination").value;
+            const departure_time = document.getElementById("departure_time").value;
+            const arrival_time = document.getElementById("arrival_time").value;
+            const stops = document.getElementById("stops").value;
+            const travelClass = document.getElementById("class").value;
+            const duration = document.getElementById("duration").value;
+            const days_left = document.getElementById("days_left").value;
+
+            fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    airline,
+                    source,
+                    destination,
+                    departure_time,
+                    arrival_time,
+                    stops,
+                    class: travelClass,
+                    duration,
+                    days_left
+                })
+            })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Prediction failed.");
+                }
+                return data;
+            })
+            .then((data) => {
+                document.getElementById("result").innerText =
+                    `Predicted Price: ${data.price} | R2: ${data.r2} | MAE: ${data.mae}`;
+            })
+            .catch((error) => {
+                document.getElementById("result").innerText = error.message;
+            });
+        }
+
+        initInteractiveImages();
+        initChartCards();
+    </script>
+</body>
+</html>
