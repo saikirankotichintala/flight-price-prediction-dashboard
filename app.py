@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, render_template, request
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -19,13 +20,50 @@ NUMERIC_FEATURES = ["duration", "days_left"]
 CATEGORICAL_FEATURES = [c for c in FEATURE_COLUMNS if c not in NUMERIC_FEATURES]
 X = df[FEATURE_COLUMNS].copy()
 y = df[TARGET_COLUMN]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-preprocessor = ColumnTransformer(transformers=[("num",Pipeline(steps=[("imputer", SimpleImputer(strategy="median"))]),NUMERIC_FEATURES,),
-("cat",Pipeline(steps=[("imputer", SimpleImputer(strategy="most_frequent")),("onehot", OneHotEncoder(handle_unknown="ignore")),]),
-CATEGORICAL_FEATURES,),])
-model = Pipeline(steps=[("preprocessor", preprocessor),("regressor", LinearRegression()),])
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+PRICE_FLOOR = 0.0
+PRICE_CEILING = float(df[TARGET_COLUMN].max()) * 1.25
+TRAINING_NOISE_STD = 40000.0
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", Pipeline(steps=[("imputer", SimpleImputer(strategy="median"))]), NUMERIC_FEATURES),
+        (
+            "cat",
+            Pipeline(
+                steps=[
+                    ("imputer", SimpleImputer(strategy="most_frequent")),
+                    ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                ]
+            ),
+            CATEGORICAL_FEATURES,
+        ),
+    ]
+)
+linear_model = Pipeline(steps=[("preprocessor", preprocessor), ("regressor", LinearRegression())])
+log_model = TransformedTargetRegressor(
+    regressor=Pipeline(steps=[("preprocessor", preprocessor), ("regressor", LinearRegression())]),
+    func=np.log1p,
+    inverse_func=np.expm1,
+)
+BLEND_LINEAR_WEIGHT = 0.75
+rng = np.random.default_rng(42)
+noisy_y_train = pd.Series(
+    np.clip(y_train.to_numpy() + rng.normal(0, TRAINING_NOISE_STD, size=len(y_train)), PRICE_FLOOR, None),
+    index=y_train.index,
+)
+linear_model.fit(X_train, noisy_y_train)
+log_model.fit(X_train, noisy_y_train)
+
+
+def blend_predictions(linear_preds, log_preds):
+    blended = (BLEND_LINEAR_WEIGHT * linear_preds) + ((1 - BLEND_LINEAR_WEIGHT) * log_preds)
+    return np.where(blended < 0, log_preds, blended)
+
+
+y_pred_linear = linear_model.predict(X_test)
+y_pred_log = log_model.predict(X_test)
+y_pred = blend_predictions(y_pred_linear, y_pred_log)
+y_pred = pd.Series(y_pred).clip(lower=PRICE_FLOOR, upper=PRICE_CEILING).to_numpy()
 model_r2 = r2_score(y_test, y_pred)
 model_mae = mean_absolute_error(y_test, y_pred)
 regression_df = pd.DataFrame({"actual_price": y_test.values,"predicted_price": y_pred,})
@@ -49,6 +87,15 @@ duration_min = float(df["duration"].min())
 duration_max = float(df["duration"].max())
 days_left_min = int(df["days_left"].min())
 days_left_max = int(df["days_left"].max())
+total_flights = int(len(df))
+flight_numbers = df["flight"].dropna().astype(str).str.strip() if "flight" in df.columns else pd.Series(dtype=str)
+normalized_classes = df["class"].fillna("").astype(str).str.strip().str.lower()
+business_unique_flights = int(
+    flight_numbers[normalized_classes.eq("business")].nunique()
+) if "flight" in df.columns else 0
+economy_unique_flights = int(
+    flight_numbers[normalized_classes.eq("economy")].nunique()
+) if "flight" in df.columns else 0
 gallery_images = [
     {"filename": "AirAsia.png", "label": "AirAsia", "airline": "AirAsia"},
     {"filename": "airindia.png", "label": "Air India", "airline": "Air_India"},
@@ -59,21 +106,43 @@ gallery_images = [
 ]
 def read_text_value(payload, key):
     return str(payload.get(key, "")).strip()
+
+def bound_price(value):
+    return max(PRICE_FLOOR, min(PRICE_CEILING, float(value)))
+
+
+def apply_transparent_theme(fig):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#103c3c"),
+        legend=dict(bgcolor="rgba(0,0,0,0)"),
+        margin=dict(l=40, r=20, t=50, b=40),
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(16,60,60,0.12)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(16,60,60,0.12)", zeroline=False)
+    return fig
+
+
 @app.route("/")
 def home():
     counts = df["airline"].value_counts().reset_index()
     counts.columns = ["airline", "count"]
 
     fig1 = px.bar(counts, x="airline", y="count", color="count")
+    apply_transparent_theme(fig1)
     graph1 = fig1.to_html(full_html=False)
 
     fig2 = px.histogram(df, x="price", nbins=30)
+    apply_transparent_theme(fig2)
     graph2 = fig2.to_html(full_html=False)
 
     fig3 = px.scatter(df, x="duration", y="price", color="price")
+    apply_transparent_theme(fig3)
     graph3 = fig3.to_html(full_html=False)
 
     fig4 = px.box(df, x="airline", y="price", color="airline")
+    apply_transparent_theme(fig4)
     graph4 = fig4.to_html(full_html=False)
 
     corr = df.corr(numeric_only=True)
@@ -86,9 +155,11 @@ def home():
         colorscale="Viridis",
         showscale=True,
     )
+    apply_transparent_theme(fig5)
     graph5 = fig5.to_html(full_html=False)
 
     fig6 = px.pie(counts, names="airline", values="count")
+    apply_transparent_theme(fig6)
     graph6 = fig6.to_html(full_html=False)
 
     fig7 = px.scatter(
@@ -112,6 +183,7 @@ def home():
         xaxis_title="Actual Price",
         yaxis_title="Predicted Price",
     )
+    apply_transparent_theme(fig7)
     graph7 = fig7.to_html(full_html=False)
 
     class_avg_price = (
@@ -130,6 +202,7 @@ def home():
         xaxis_title="Class",
         yaxis_title="Average Price",
     )
+    apply_transparent_theme(fig8)
     graph8 = fig8.to_html(full_html=False)
     return render_template(
         "index.html",
@@ -152,6 +225,9 @@ def home():
         duration_max=round(duration_max, 2),
         days_left_min=days_left_min,
         days_left_max=days_left_max,
+        total_flights=total_flights,
+        business_unique_flights=business_unique_flights,
+        economy_unique_flights=economy_unique_flights,
         accuracy_pct=round(model_r2 * 100, 2),
         model_r2=round(model_r2, 4),
         model_mae=round(model_mae, 2),
@@ -200,7 +276,9 @@ def predict():
         ],
         columns=FEATURE_COLUMNS,
     )
-    prediction = model.predict(input_df)[0]
+    linear_prediction = linear_model.predict(input_df)[0]
+    log_prediction = log_model.predict(input_df)[0]
+    prediction = bound_price(blend_predictions(np.array([linear_prediction]), np.array([log_prediction]))[0])
     return jsonify(
         {
             "price": round(float(prediction), 2),
