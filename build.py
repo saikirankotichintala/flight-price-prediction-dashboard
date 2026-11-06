@@ -29,11 +29,11 @@ def main():
         shutil.copy2(artifact, packaged / artifact.name)
     static = BASE_DIR / "static"
     (static / "plotly.min.js").write_text(get_plotlyjs(), encoding="utf-8")
-    # Vercel serves public/ from its CDN; retain /static URLs used by Flask.
+    # Keep the committed CDN assets synchronized with the editable source files.
     destination = BASE_DIR / "public" / "static"
     destination.mkdir(parents=True, exist_ok=True)
     for asset in static.iterdir():
-        if asset.is_file():
+        if asset.is_file() and asset.name != "Plane photo.png":
             shutil.copy2(asset, destination / asset.name)
     print(f"Prepared {len(bundle['models'])} models ({'cached' if hit else 'trained'}) and static assets", flush=True)
 

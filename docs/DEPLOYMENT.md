@@ -2,7 +2,7 @@
 
 ## Build once, serve predictions
 
-Use Python 3.14 and the pinned `requirements.txt`. `python build.py` prepares matching model artifacts in `model_artifacts/`, generates a local Plotly script, and copies static files to `public/static/` for Vercel's CDN. These outputs are generated during deployment and are intentionally not committed.
+Use Python 3.14 and the pinned `requirements.txt`. `python build.py` prepares matching model artifacts in `model_artifacts/`, generates a local Plotly script, and synchronizes static files to `public/static/` for Vercel's CDN. Model artifacts are generated during deployment and are intentionally not committed; required CDN assets are committed so they are also discoverable before build hooks run.
 
 The deployed app loads prebuilt models. `VERCEL=1` or `FLIGHT_REQUIRE_CACHE=1` prevents expensive retraining during worker startup; a missing or incompatible artifact fails with a build instruction. Local development can still train automatically when no artifact is available.
 
@@ -31,7 +31,7 @@ Reference: [Render Flask deployment](https://render.com/docs/deploy-flask).
 
 Import the repository using the root `app.py`. The supplied `"framework": "flask"` explicitly selects the Flask builder, including when the project was originally created with the Other preset. Keep the supplied `vercel.json` and `.python-version`; the configured build command is `python build.py`.
 
-The function explicitly includes `model_artifacts/`, templates, and the dataset. Static assets are copied to `public/static/` during build and served from the CDN, preserving the existing `/static/...` URLs. `maxDuration` is set to 60 seconds; inference loads cached models rather than training during cold starts.
+The function explicitly includes `model_artifacts/`, templates, and the dataset. Required static assets are committed in `public/static/` and refreshed during build, preserving the existing `/static/...` URLs. Edit assets in `static/`, run `python build.py`, and commit the corresponding public copies together. `maxDuration` is set to 60 seconds; inference loads cached models rather than training during cold starts.
 
 Dashboard responses use histogram counts and box-plot statistics instead of raw full-dataset arrays, and load Plotly from a static file. Scatter plots retain a maximum of 5,000 points. This keeps HTML below Vercel's 4.5 MB response limit. The box plot displays quartiles and whiskers, with individual outliers omitted.
 
@@ -59,3 +59,8 @@ After deployment, verify `/health`, all navigation tabs, a sample prediction, fi
 ### Fixing `[unused_function] app.py`
 
 This error means the build is using generic `/api` function discovery while the function configuration targets the root Flask entrypoint. The repository explicitly sets `"framework": "flask"` in `vercel.json`. Redeploy the latest commit with the repository root as the Root Directory. If deploying with a locally installed Vercel CLI, use a current version supporting Flask (minimum 48.2.10). Keep the root `app.py` function entry; no `/api` wrapper or catch-all rewrite is required for native Flask deployments.
+
+
+### HTML loads without styling or images
+
+Check `/static/dashboard.css` and `/static/aviation-sky.png`. These must be public CDN files, not Flask 404 responses. Keep the required `public/static/` assets in Git; an ignored, generated-only public directory can leave the deployed application without its stylesheet, scripts, or images. The asset publication test checks rendered HTML references, CSS background dependencies, and source/public consistency.
