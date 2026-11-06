@@ -1,2 +1,11 @@
 __pycache__/
 *.py[cod]
+
+.model_cache/
+.pytest_cache/
+
+public/
+static/plotly.min.js
+.venv/
+.vercel/
+model_artifacts/

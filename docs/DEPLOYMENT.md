@@ -1,0 +1,46 @@
+# Render and Vercel deployment
+
+## Build once, serve predictions
+
+Use Python 3.14 and the pinned `requirements.txt`. `python build.py` prepares matching model artifacts in `model_artifacts/`, generates a local Plotly script, and copies static files to `public/static/` for Vercel's CDN. These outputs are generated during deployment and are intentionally not committed.
+
+The deployed app loads prebuilt models. `VERCEL=1` or `FLIGHT_REQUIRE_CACHE=1` prevents expensive retraining during worker startup; a missing or incompatible artifact fails with a build instruction. Local development can still train automatically when no artifact is available.
+
+Run locally after installing dependencies:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 build.py
+python3 app.py
+```
+
+## Render
+
+Import the repository as a Blueprint using `render.yaml`, or create a Python Web Service with:
+
+- Build: `pip install -r requirements.txt && python build.py`
+- Start: `gunicorn --config gunicorn.conf.py app:app`
+- Health check: `/health`
+- Environment: `PYTHON_VERSION=3.14.0`, `FLIGHT_REQUIRE_CACHE=1`
+
+The Gunicorn configuration binds to Render's `PORT`, uses one worker with two threads to avoid duplicating models across workers, and sets a 120-second timeout. The CSV and ensembles remain in memory; size the service from measured RSS and peak build memory rather than assuming a 512 MB instance will suffice.
+
+Reference: [Render Flask deployment](https://render.com/docs/deploy-flask).
+
+## Vercel
+
+Import the repository with Flask framework detection, using the root `app.py`. Keep the supplied `vercel.json` and `.python-version`; the configured build command is `python build.py`.
+
+The function explicitly includes `model_artifacts/`, templates, and the dataset. Static assets are copied to `public/static/` during build and served from the CDN, preserving the existing `/static/...` URLs. `maxDuration` is set to 60 seconds; inference loads cached models rather than training during cold starts.
+
+Dashboard responses use histogram counts and box-plot statistics instead of raw full-dataset arrays, and load Plotly from a static file. Scatter plots retain a maximum of 5,000 points. This keeps HTML below Vercel's 4.5 MB response limit. The box plot displays quartiles and whiskers, with individual outliers omitted.
+
+Vercel's standard Python function bundle limit is 500 MB. The actual Linux deployment bundle includes scientific-library wheels, model artifacts, and the CSV. Its final size must be checked in Vercel build output; local macOS checks cannot establish that size. If it exceeds the limit, reduce dependencies/artifacts or evaluate the platform's large-functions option. Do not assume it is enabled.
+
+References: [Vercel Flask support](https://vercel.com/docs/frameworks/backend/flask), [function limits](https://vercel.com/docs/functions/limitations).
+
+## Verification and scope
+
+Local verification covers training/cache generation, production Gunicorn startup, model inference, health checks, static-file output, and response size. A successful local check is not a successful hosted deployment. Vercel account settings, Linux bundle size, Render instance memory, and platform build logs must still be verified on the actual services.
+
+After deployment, verify `/health`, all navigation tabs, a sample prediction, filtered Analytics, static background/Plotly files, and history CSV export. Browser history is scoped to the site's origin and will not transfer from localhost to the public URL.

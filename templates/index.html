@@ -324,6 +324,7 @@
             }
         }
     </style>
+    <script src="{{ url_for('static', filename='plotly.min.js') }}"></script>
 </head>
 <body>
     <div class="top-header">
@@ -354,6 +355,12 @@
             <div><strong>Mean Absolute Error:</strong> {{ model_mae }}</div>
         </div>
 
+        <div class="card" style="overflow-x:auto; margin-bottom:20px;">
+            <h2>Model Comparison</h2>
+            <table style="width:100%; text-align:left"><thead><tr><th>Model</th><th>Test R2</th><th>MAE (₹)</th></tr></thead><tbody>
+            {% for model in model_options %}<tr><td>{{ model.name }}</td><td>{{ model.r2 }}</td><td>{{ model.mae }}</td></tr>{% endfor %}
+            </tbody></table>
+        </div>
         <div class="stats-grid">
             <div class="stat-card">
                 <p class="stat-label">Total Flights</p>
@@ -415,6 +422,9 @@
         <div class="card predict-card" id="predict-card">
             <h2>Predict Flight Price</h2>
             <div class="predict-form">
+                <div class="form-field"><label for="model">Prediction model</label><select id="model">
+                {% for model in model_options %}<option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>{{ model.name }}</option>{% endfor %}
+                </select></div>
                 <div class="form-field">
                     <label for="airline">Airline:</label>
                     <select id="airline">
@@ -560,6 +570,7 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
+                    model: document.getElementById("model").value,
                     airline,
                     source,
                     destination,

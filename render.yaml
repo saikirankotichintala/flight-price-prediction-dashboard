@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: flight-price-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python build.py
+    startCommand: gunicorn --config gunicorn.conf.py app:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.0
+      - key: FLIGHT_REQUIRE_CACHE
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"

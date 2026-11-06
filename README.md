@@ -69,7 +69,7 @@ The application trains regression pipelines with preprocessing for numeric and c
 - Categorical inputs: `airline`, `source_city`, `destination_city`, `departure_time`, `arrival_time`, `stops`, `class`
 - Target output: `price`
 
-The dashboard displays the current R2 score and mean absolute error after model evaluation.
+Five selectable models are available: Linear Regression, Ridge Regression, Decision Tree, Random Forest, and Extra Trees (default). Pipelines train on real prices using a reproducible 64% fit / 16% calibration / 20% test split. The application reports held-out R2, MAE, calibrated fare ranges, and separate unseen-route and lead-time diagnostics. R2 is not classification accuracy.
 
 ## Tech Stack
 
@@ -97,13 +97,14 @@ Fight-price-analysis-prediction-dashboard/
 Install the required Python packages:
 
 ```bash
-pip install flask pandas numpy plotly scikit-learn
+python3 -m pip install -r requirements.txt
 ```
 
 Start the Flask app:
 
 ```bash
-python app.py
+python3 build.py
+python3 app.py
 ```
 
 Open the dashboard in your browser:
@@ -120,3 +121,8 @@ The app exposes a `POST /predict` endpoint. It accepts flight details as JSON an
 - Model accuracy percentage
 - R2 score
 - Mean absolute error
+
+
+## Deployment
+
+Render and Vercel configurations build model artifacts before serving requests. See [deployment instructions](docs/DEPLOYMENT.md) for settings, production checks, and hosting limits.
