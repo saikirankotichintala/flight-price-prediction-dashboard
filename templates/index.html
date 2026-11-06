@@ -4,334 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flight Price Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            color: #222;
-            position: relative;
-            min-height: 100vh;
-        }
+    <meta name="theme-color" content="#102c3c">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background-image: url("{{ url_for('static', filename='Plane photo.png') }}");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: -2;
-        }
-
-        body::after {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background: rgba(244, 246, 248, 0.84);
-            z-index: -1;
-        }
-
-        .top-header {
-            background-color: transparent;
-            color: #0f3f3f;
-            padding: 12px 20px;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        h1 {
-            margin: 0;
-            text-align: center;
-            font-size: 30px;
-            font-family: Algerian, "Bookman Old Style", serif;
-            letter-spacing: 1px;
-            text-shadow: 0 2px 10px rgba(255, 255, 255, 0.35);
-        }
-
-        .container {
-            width: min(1200px, 95%);
-            margin: auto;
-            padding: 20px;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.32);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .media-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .thumb-list {
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.32);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-            padding: 10px;
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            align-content: start;
-        }
-
-        .thumb-btn {
-            width: 100%;
-            border: 1px solid #d4dde6;
-            background: rgba(255, 255, 255, 0.24);
-            border-radius: 10px;
-            padding: 8px;
-            cursor: pointer;
-            text-align: left;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .thumb-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(10, 55, 55, 0.15);
-        }
-
-        .thumb-btn.active {
-            border-color: #118484;
-            box-shadow: 0 0 0 2px rgba(17, 132, 132, 0.18);
-        }
-
-        .thumb-btn img {
-            width: 100%;
-            height: 72px;
-            object-fit: contain;
-            border-radius: 8px;
-            background: rgba(248, 251, 253, 0.4);
-        }
-
-        .thumb-btn span {
-            display: block;
-            margin-top: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #143737;
-        }
-
-        .metric-strip {
-            background: #e9f9f8;
-            border: 1px solid #bde7e4;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 18px;
-            font-size: 15px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.34);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 14px;
-            padding: 16px 18px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .stat-label {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-            color: #356262;
-        }
-
-        .stat-value {
-            margin: 8px 0 0;
-            font-size: 30px;
-            font-weight: 700;
-            color: #103c3c;
-        }
-
-        .chart-tip {
-            margin: 0 0 10px;
-            color: #356262;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-        }
-
-        .graph-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .graph-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-        }
-
-        .graph-card.expanded-card {
-            grid-column: span 2;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
-        }
-
-        h2 {
-            text-align: center;
-        }
-
-        .predict-card {
-            margin-top: 20px;
-            padding: 14px 16px;
-        }
-
-        .predict-card h2 {
-            margin: 0 0 10px;
-        }
-
-        .predict-form {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px 12px;
-            align-items: end;
-        }
-
-        .form-field {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            display: block;
-            margin-top: 0;
-            margin-bottom: 4px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        select,
-        input,
-        button {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #cdd6df;
-            font-size: 14px;
-        }
-
-        button {
-            background: teal;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #006d6d;
-        }
-
-        #result {
-            margin-top: 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .form-actions {
-            grid-column: span 3;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 2px;
-        }
-
-        .predict-submit {
-            width: auto;
-            min-width: 170px;
-            margin: 0;
-        }
-
-        @media (max-width: 1200px) {
-            .stats-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .graph-card.expanded-card {
-                grid-column: span 2;
-            }
-
-            .predict-form {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .form-actions {
-                grid-column: span 2;
-            }
-        }
-
-        @media (max-width: 900px) {
-            .media-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .thumb-list {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .graph-card.expanded-card {
-                grid-column: span 1;
-            }
-
-            .predict-form {
-                grid-template-columns: 1fr;
-            }
-
-            .form-actions {
-                grid-column: span 1;
-            }
-        }
-    </style>
     <script src="{{ url_for('static', filename='plotly.min.js') }}"></script>
 </head>
 <body>
-    <div class="top-header">
-        <h1>Flight Price Dashboard</h1>
-    </div>
-
-    <div class="container">
+    <main class="container">
+        <header class="top-header">
+            <a class="brand" href="/" aria-label="Flight Price Dashboard home"><span class="brand-icon" aria-hidden="true">✈</span><span>Fare<span class="brand-accent">Scope</span><small>FLIGHT PRICE DASHBOARD</small></span></a>
+            <span class="header-label">Explore. Estimate. Travel.</span>
+        </header>
+        <nav class="tab-list" role="tablist" aria-label="Dashboard sections">
+            {% for key, label in [('dashboard', 'Predict'), ('analytics', 'Analytics'), ('history', 'History')] %}
+            <a id="tab-{{ key }}" class="tab-link" role="tab" href="{{ url_for('home', view=key, **filters) }}" aria-controls="panel-{{ key }}" aria-selected="{{ 'true' if active_tab == key else 'false' }}" tabindex="{{ '0' if active_tab == key else '-1' }}" data-tab="{{ key }}">{{ label }}</a>
+            {% endfor %}
+        </nav>
+        <section id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0" {% if active_tab != 'dashboard' %}hidden{% endif %}>
+        <div class="hero">
+            <div class="hero-copy"><p class="eyebrow">A clearer view of your next trip</p><h1>Know your fare.<br><span>Plan with confidence.</span></h1><p>Explore flight prices and estimate your journey in a few simple steps.</p></div>
+            <div class="hero-art" aria-hidden="true"><span class="flight-line"></span><span class="hero-plane">✈</span><span class="route-label route-start">DEPARTURE</span><span class="route-label route-end">YOUR NEXT DESTINATION</span></div>
+        </div>
+        <div class="section-heading"><div><span class="eyebrow">Choose your airline</span></div><span class="quiet">{{ airlines|length }} airlines to explore</span></div>
         <div class="media-grid">
             <div class="thumb-list">
                 {% for image in gallery_images %}
@@ -349,21 +43,127 @@
             </div>
         </div>
 
-        <div class="metric-strip">
-            <div><strong>Model Accuracy (R2):</strong> {{ accuracy_pct }}%</div>
-            <div><strong>R2 Score:</strong> {{ model_r2 }}</div>
-            <div><strong>Mean Absolute Error:</strong> {{ model_mae }}</div>
+        <div class="card predict-card" id="predict-card">
+            <div class="section-heading"><div><p class="eyebrow">Your journey</p><h2>Estimate your flight fare</h2></div><span class="step-badge">01 / Flight details</span></div>
+            <form id="prediction-form" class="predict-form">
+                <div class="form-field">
+                    <label for="source">From</label>
+                    <select id="source">
+                        {% for value in sources %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="destination">To</label>
+                    <select id="destination">
+                        {% for value in destinations %}
+                        <option value="{{ value }}" {% if value == default_destination %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="airline">Airline</label>
+                    <select id="airline">
+                        {% for value in airlines %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="departure_time">Departure</label>
+                    <select id="departure_time">
+                        {% for value in departure_times %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="arrival_time">Arrival</label>
+                    <select id="arrival_time">
+                        {% for value in arrival_times %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="duration">Duration (hours)</label>
+                    <input
+                        id="duration"
+                        type="number"
+                        min="{{ duration_min }}"
+                        max="{{ duration_max }}"
+                        step="0.01"
+                        value="{{ duration_min }}"
+                    />
+                </div>
+                <div class="form-field">
+                    <label for="stops">Stops</label>
+                    <select id="stops">
+                        {% for value in stops %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="class">Cabin class</label>
+                    <select id="class">
+                        {% for value in classes %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="days_left">Days before departure</label>
+                    <input
+                        id="days_left"
+                        type="number"
+                        min="{{ days_left_min }}"
+                        max="{{ days_left_max }}"
+                        step="1"
+                        value="{{ days_left_min }}"
+                    />
+                </div>
+                <div class="form-field">
+                    <label for="model">Model</label>
+                    <select id="model">
+                        {% for model in model_options %}
+                        <option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>{{ model.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button id="predict-button" class="predict-submit" type="submit">Predict Price</button>
+                    <button id="sample-flight" class="predict-submit" type="button">Try sample flight</button>
+                    <div id="result" class="fare-result" role="status" aria-live="polite"><span class="result-label">YOUR FARE ESTIMATE</span><span class="result-placeholder">Your estimate will appear here</span></div>
+                </div>
+            </form>
+            <p class="note">Estimates from historical fares. Actual ticket prices may vary.</p>
         </div>
+        </section>
+        <section id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" tabindex="0" {% if active_tab != 'analytics' %}hidden{% endif %}>
+        <section class="card section-card">
+            <div class="section-heading"><div><p class="eyebrow">The bigger picture</p><h2>Explore flight prices</h2></div></div>
+            <form method="get" action="/" class="predict-form">
+                <input type="hidden" name="view" value="analytics">
+                {% for key, label, choices in [('airline', 'Airline', airlines), ('source_city', 'Source', sources), ('destination_city', 'Destination', destinations), ('class', 'Class', classes)] %}
+                <div class="form-field">
+                    <label for="filter-{{ key }}">{{ label }}</label>
+                    <select id="filter-{{ key }}" name="{{ key }}">
+                        <option value="">All</option>
+                        {% for value in choices %}<option value="{{ value }}" {% if filters[key] == value %}selected{% endif %}>{{ value }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endfor %}
+                <div class="action-row"><button type="submit">Apply filters</button><a href="/?view=analytics">Reset filters</a></div>
+            </form>
+            <p class="note">{{ total_flights }} matching flights</p>
+            {% if total_flights == 0 %}<p role="status">No flights match these filters. Try another route or reset the filters.</p>{% endif %}
+        </section>
 
-        <div class="card" style="overflow-x:auto; margin-bottom:20px;">
-            <h2>Model Comparison</h2>
-            <table style="width:100%; text-align:left"><thead><tr><th>Model</th><th>Test R2</th><th>MAE (₹)</th></tr></thead><tbody>
-            {% for model in model_options %}<tr><td>{{ model.name }}</td><td>{{ model.r2 }}</td><td>{{ model.mae }}</td></tr>{% endfor %}
-            </tbody></table>
-        </div>
         <div class="stats-grid">
             <div class="stat-card">
-                <p class="stat-label">Total Flights</p>
+                <p class="stat-label">Matching Flights</p>
                 <p class="stat-value">{{ total_flights }}</p>
             </div>
             <div class="stat-card">
@@ -376,7 +176,6 @@
             </div>
         </div>
 
-        <p class="chart-tip">Tip: double-click any chart card to expand or collapse it.</p>
         <div class="grid">
             <div class="card graph-card">
                 <h2>Flights by Airline</h2>
@@ -419,187 +218,47 @@
             </div>
         </div>
 
-        <div class="card predict-card" id="predict-card">
-            <h2>Predict Flight Price</h2>
-            <div class="predict-form">
-                <div class="form-field"><label for="model">Prediction model</label><select id="model">
-                {% for model in model_options %}<option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>{{ model.name }}</option>{% endfor %}
-                </select></div>
-                <div class="form-field">
-                    <label for="airline">Airline:</label>
-                    <select id="airline">
-                        {% for value in airlines %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="source">Source:</label>
-                    <select id="source">
-                        {% for value in sources %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="destination">Destination:</label>
-                    <select id="destination">
-                        {% for value in destinations %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="departure_time">Departure Time:</label>
-                    <select id="departure_time">
-                        {% for value in departure_times %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="arrival_time">Arrival Time:</label>
-                    <select id="arrival_time">
-                        {% for value in arrival_times %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="stops">Stops:</label>
-                    <select id="stops">
-                        {% for value in stops %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="class">Class:</label>
-                    <select id="class">
-                        {% for value in classes %}
-                        <option value="{{ value }}">{{ value }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="duration">Duration (hours):</label>
-                    <input
-                        id="duration"
-                        type="number"
-                        min="{{ duration_min }}"
-                        max="{{ duration_max }}"
-                        step="0.01"
-                        value="{{ duration_min }}"
-                    />
-                </div>
-
-                <div class="form-field">
-                    <label for="days_left">Days Left:</label>
-                    <input
-                        id="days_left"
-                        type="number"
-                        min="{{ days_left_min }}"
-                        max="{{ days_left_max }}"
-                        step="1"
-                        value="{{ days_left_min }}"
-                    />
-                </div>
-
-                <div class="form-actions">
-                    <button class="predict-submit" type="button" onclick="predictPrice()">Predict Price</button>
-                    <h3 id="result"></h3>
-                </div>
-            </div>
+        <details class="card performance-details"><summary>Model performance <span>Compare evaluation results</span></summary>
+        <div class="table-wrap">
+            <h2>Model Comparison</h2>
+            <p>Held-out test results · 64% training / 16% calibration / 20% test. R² is a regression score; MAE is in rupees.</p>
+            <table style="width: 100%; text-align: left;">
+                <thead><tr><th>Model</th><th>R2</th><th>MAE (₹)</th><th>Test range coverage</th></tr></thead>
+                <tbody>{% for model in model_options %}
+                    <tr><td>{{ model.name }}</td><td>{{ model.r2 }}</td><td>{{ model.mae }}</td><td>{{ model.coverage_pct }}%</td></tr>
+                {% endfor %}</tbody>
+            </table>
         </div>
-    </div>
 
-    <script>
-        function initInteractiveImages() {
-            const airlineSelect = document.getElementById("airline");
-            const thumbButtons = Array.from(document.querySelectorAll(".thumb-btn"));
+        <section class="table-wrap">
+            <h2>Generalization Checks</h2>
+            <p class="note">Diagnostic evaluations of {{ default_model_name }} with separate training splits. The dataset has no travel dates, so lead-time evaluation is not a future-date backtest.</p>
+            <table>
+                <thead><tr><th>Evaluation</th><th>Training rows</th><th>Test rows</th><th>R2</th><th>MAE (₹)</th></tr></thead>
+                <tbody>{% for evaluation in evaluations %}
+                    <tr><td>{{ evaluation.name }}<br><small>{{ evaluation.detail }}</small></td>
+                    {% if evaluation.status == 'ok' %}
+                    <td>{{ evaluation.train_rows }}</td><td>{{ evaluation.test_rows }}</td><td>{{ evaluation.r2 }}</td><td>{{ evaluation.mae }}</td>
+                    {% else %}<td colspan="4">Unavailable</td>{% endif %}</tr>
+                {% endfor %}</tbody>
+            </table>
+        </section>
 
-            thumbButtons.forEach((button) => {
-                button.addEventListener("click", () => {
-                    thumbButtons.forEach((item) => item.classList.remove("active"));
-                    button.classList.add("active");
-
-                    const label = button.dataset.label || "Image";
-                    const airlineValue = button.dataset.airline || "";
-
-                    if (airlineValue) {
-                        airlineSelect.value = airlineValue;
-                        document.getElementById("result").innerText = `${label} selected.`;
-                        document.getElementById("predict-card").scrollIntoView({
-                            behavior: "smooth",
-                            block: "start"
-                        });
-                    }
-                });
-            });
-        }
-
-        function initChartCards() {
-            document.querySelectorAll(".graph-card").forEach((card) => {
-                card.addEventListener("dblclick", () => {
-                    card.classList.toggle("expanded-card");
-                });
-            });
-        }
-
-        function predictPrice() {
-            const airline = document.getElementById("airline").value;
-            const source = document.getElementById("source").value;
-            const destination = document.getElementById("destination").value;
-            const departure_time = document.getElementById("departure_time").value;
-            const arrival_time = document.getElementById("arrival_time").value;
-            const stops = document.getElementById("stops").value;
-            const travelClass = document.getElementById("class").value;
-            const duration = document.getElementById("duration").value;
-            const days_left = document.getElementById("days_left").value;
-
-            fetch("/predict", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: document.getElementById("model").value,
-                    airline,
-                    source,
-                    destination,
-                    departure_time,
-                    arrival_time,
-                    stops,
-                    class: travelClass,
-                    duration,
-                    days_left
-                })
-            })
-            .then(async (response) => {
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || "Prediction failed.");
-                }
-                return data;
-            })
-            .then((data) => {
-                document.getElementById("result").innerText =
-                    `Predicted Price: ${data.price} | R2: ${data.r2} | MAE: ${data.mae}`;
-            })
-            .catch((error) => {
-                document.getElementById("result").innerText = error.message;
-            });
-        }
-
-        initInteractiveImages();
-        initChartCards();
-    </script>
+        </details>
+        </section>
+        <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" tabindex="0" {% if active_tab != 'history' %}hidden{% endif %}>
+        <section class="card section-card">
+            <div class="section-heading"><div><p class="eyebrow">Your recent searches</p><h2>Prediction history</h2></div></div>
+            <p class="note">The latest 100 predictions are saved in this browser on this device.</p>
+            <div class="action-row"><button id="export-history" type="button">Export CSV</button><button id="clear-history" type="button">Clear history</button></div>
+            <p id="history-status" role="status" aria-live="polite"></p>
+            <table><thead><tr><th>Time</th><th>Route</th><th>Airline / Class</th><th>Model</th><th>Fare</th><th>Estimated range</th></tr></thead><tbody id="history-body"></tbody></table>
+        </section>
+        </section>
+        <footer class="page-footer">FareScope · Flight price insights</footer>
+    </main>
+    <script id="sample-flight-data" type="application/json">{{ sample_flight|tojson }}</script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='navigation.js') }}" defer></script>
 </body>
 </html>

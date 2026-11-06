@@ -44,3 +44,13 @@ References: [Vercel Flask support](https://vercel.com/docs/frameworks/backend/fl
 Local verification covers training/cache generation, production Gunicorn startup, model inference, health checks, static-file output, and response size. A successful local check is not a successful hosted deployment. Vercel account settings, Linux bundle size, Render instance memory, and platform build logs must still be verified on the actual services.
 
 After deployment, verify `/health`, all navigation tabs, a sample prediction, filtered Analytics, static background/Plotly files, and history CSV export. Browser history is scoped to the site's origin and will not transfer from localhost to the public URL.
+
+
+## Local pre-push measurements
+
+- Full-data dashboard response: approximately 281 KB.
+- All five models returned predictions using a required prebuilt artifact.
+- Production Gunicorn health and homepage checks returned HTTP 200.
+- Categorical CSV loading used about 597 MB RSS in this macOS test process; provision more than 512 MB for Render, with additional headroom for concurrent requests and training.
+- Python 3.14 Linux wheels resolved for all pinned dependencies. Their uncompressed contents plus the model artifact and CSV total approximately 337 MiB before Vercel packaging/runtime overhead.
+- These are local measurements, not hosted deployment results.
