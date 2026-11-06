@@ -29,7 +29,7 @@ Reference: [Render Flask deployment](https://render.com/docs/deploy-flask).
 
 ## Vercel
 
-Import the repository with Flask framework detection, using the root `app.py`. Keep the supplied `vercel.json` and `.python-version`; the configured build command is `python build.py`.
+Import the repository using the root `app.py`. The supplied `"framework": "flask"` explicitly selects the Flask builder, including when the project was originally created with the Other preset. Keep the supplied `vercel.json` and `.python-version`; the configured build command is `python build.py`.
 
 The function explicitly includes `model_artifacts/`, templates, and the dataset. Static assets are copied to `public/static/` during build and served from the CDN, preserving the existing `/static/...` URLs. `maxDuration` is set to 60 seconds; inference loads cached models rather than training during cold starts.
 
@@ -54,3 +54,8 @@ After deployment, verify `/health`, all navigation tabs, a sample prediction, fi
 - Categorical CSV loading used about 597 MB RSS in this macOS test process; provision more than 512 MB for Render, with additional headroom for concurrent requests and training.
 - Python 3.14 Linux wheels resolved for all pinned dependencies. Their uncompressed contents plus the model artifact and CSV total approximately 337 MiB before Vercel packaging/runtime overhead.
 - These are local measurements, not hosted deployment results.
+
+
+### Fixing `[unused_function] app.py`
+
+This error means the build is using generic `/api` function discovery while the function configuration targets the root Flask entrypoint. The repository explicitly sets `"framework": "flask"` in `vercel.json`. Redeploy the latest commit with the repository root as the Root Directory. If deploying with a locally installed Vercel CLI, use a current version supporting Flask (minimum 48.2.10). Keep the root `app.py` function entry; no `/api` wrapper or catch-all rewrite is required for native Flask deployments.
